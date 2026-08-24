@@ -4,7 +4,7 @@ import os
 import smtplib
 
 MY_LAT = 41.878113 # Your latitude
-MY_LONG = -0.127758 # Your longitude
+MY_LONG = -87.629799 # Your longitude
 
 MY_EMAIL = os.environ.get("MY_EMAIL")
 PASSWORD = os.environ.get("MY_PASSWORD")
