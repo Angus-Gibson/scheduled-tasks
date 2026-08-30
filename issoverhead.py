@@ -45,9 +45,20 @@ def is_dark():
     if sunrise_dt is None or sunset_dt is None:
         return False
 
-    now = datetime.now(sunrise_dt.tzinfo)
-    sunrise_today = datetime.combine(now.date(), sunrise_dt.timetz())
-    sunset_today = datetime.combine(now.date(), sunset_dt.timetz())
+    tzinfo = sunrise_dt.tzinfo or sunset_dt.tzinfo
+    now = datetime.now(tzinfo)
+    sunrise_today = now.replace(
+        hour=sunrise_dt.hour,
+        minute=sunrise_dt.minute,
+        second=sunrise_dt.second,
+        microsecond=sunrise_dt.microsecond,
+    )
+    sunset_today = now.replace(
+        hour=sunset_dt.hour,
+        minute=sunset_dt.minute,
+        second=sunset_dt.second,
+        microsecond=sunset_dt.microsecond,
+    )
     return now >= sunset_today or now <= sunrise_today
 
 
@@ -97,8 +108,7 @@ def main():
         try:
             with smtplib.SMTP("smtp.gmail.com", port=587) as connection:
                 connection.starttls()
-                login_kwargs = {"user": MY_EMAIL, "password": PASSWORD}
-                connection.login(**login_kwargs)
+                connection.login(**{"user": MY_EMAIL, "password": PASSWORD})
                 connection.sendmail(
                     from_addr=MY_EMAIL,
                     to_addrs=PERSONAL,

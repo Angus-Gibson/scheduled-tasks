@@ -16,6 +16,7 @@ class FrozenDateTime(datetime):
 def test_is_dark_before_sunrise_after_midnight(monkeypatch):
     issoverhead.sunrise_dt = datetime(2026, 1, 1, 6, 0, tzinfo=timezone.utc)
     issoverhead.sunset_dt = datetime(2026, 1, 1, 18, 0, tzinfo=timezone.utc)
+    FrozenDateTime.current = datetime(2026, 1, 2, 0, 30, tzinfo=timezone.utc)
     monkeypatch.setattr(issoverhead, "datetime", FrozenDateTime)
 
     assert issoverhead.is_dark() is True
