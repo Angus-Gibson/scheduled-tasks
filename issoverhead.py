@@ -46,6 +46,9 @@ def is_dark():
         return False
 
     tzinfo = sunrise_dt.tzinfo or sunset_dt.tzinfo
+    if tzinfo is None:
+        return False
+
     now = datetime.now(tzinfo)
     sunrise_today = now.replace(
         hour=sunrise_dt.hour,
@@ -59,7 +62,7 @@ def is_dark():
         second=sunset_dt.second,
         microsecond=sunset_dt.microsecond,
     )
-    return now >= sunset_today or now <= sunrise_today
+    return now >= sunset_today or now < sunrise_today
 
 
 def main():
@@ -88,7 +91,6 @@ def main():
     }
 
     try:
-        session = get_session_with_retries()
         response = session.get("https://api.sunrise-sunset.org/json", params=parameters, timeout=10)
         response.raise_for_status()
         data = response.json()
