@@ -60,23 +60,18 @@ try:
     response = session.get("https://api.sunrise-sunset.org/json", params=parameters, timeout=10)
     response.raise_for_status()
     data = response.json()
-    sunrise = int(data["results"]["sunrise"].split("T")[1].split(":")[0])
-    sunset = int(data["results"]["sunset"].split("T")[1].split(":")[0])
+    sunrise_dt = datetime.fromisoformat(data["results"]["sunrise"])
+    sunset_dt = datetime.fromisoformat(data["results"]["sunset"])
 except (requests.exceptions.ConnectionError, requests.exceptions.Timeout) as e:
     print(f"Error: Could not connect to Sunrise-Sunset API after retries: {e}")
     exit(0)  # Exit gracefully without failing the workflow
-except requests.exceptions.RequestException as e:
+except (requests.exceptions.RequestException, KeyError, ValueError) as e:
     print(f"Error: Failed to fetch sunrise-sunset data: {e}")
     exit(0)
 
-time_now = datetime.now()
-
-sunrise_dt = datetime.fromisoformat(data["results"]["sunrise"])
-sunset_dt = datetime.fromisoformat(data["results"]["sunset"])
-
 def is_dark():
-    now = datetime.now(sunrise_dt.tzinfo)  # matches whatever offset the API returned
-    return now >= sunset_dt or now <= sunrise_dt
+    now = datetime.now(sunrise_dt.tzinfo).time()
+    return now >= sunset_dt.time() or now <= sunrise_dt.time()
 
 #If the ISS is close to my current position
 # and it is currently dark
