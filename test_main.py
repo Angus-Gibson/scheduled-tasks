@@ -64,11 +64,22 @@ def test_sends_email_when_iss_close_and_dark(monkeypatch):
     fake_session.get.side_effect = [fake_iss_response, fake_sun_response]
     monkeypatch.setattr(issoverhead, "get_session_with_retries", lambda: fake_session)
 
+    # Provide explicit credentials/addresses so the test validates arguments, not just call counts
+    monkeypatch.setattr(issoverhead, "MY_EMAIL", "sender@example.com")
+    monkeypatch.setattr(issoverhead, "PASSWORD", "password")
+    monkeypatch.setattr(issoverhead, "PERSONAL", "recipient@example.com")
+
     with patch("issoverhead.smtplib.SMTP") as mock_smtp:
         mock_connection = MagicMock()
         mock_smtp.return_value.__enter__.return_value = mock_connection
 
         issoverhead.main()
 
-        mock_connection.login.assert_called_once()
-        mock_connection.sendmail.assert_called_once()
+        mock_smtp.assert_called_once_with("smtp.gmail.com", port=587)
+        mock_connection.starttls.assert_called_once()
+        mock_connection.login.assert_called_once_with(user="sender@example.com", password="password")
+        mock_connection.sendmail.assert_called_once_with(
+            from_addr="sender@example.com",
+            to_addrs="recipient@example.com",
+            msg="Subject:ISS IS OVERHEAD\n\nISS is overhead! See if you can spot it!",
+        )
