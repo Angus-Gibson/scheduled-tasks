@@ -71,11 +71,12 @@ except requests.exceptions.RequestException as e:
 
 time_now = datetime.now()
 
+sunrise_dt = datetime.fromisoformat(data["results"]["sunrise"])
+sunset_dt = datetime.fromisoformat(data["results"]["sunset"])
+
 def is_dark():
-    if time_now.hour >= sunset or time_now.hour <= sunrise:
-        return True
-    else:
-        return False
+    now = datetime.now(sunrise_dt.tzinfo)  # matches whatever offset the API returned
+    return now >= sunset_dt or now <= sunrise_dt
 
 #If the ISS is close to my current position
 # and it is currently dark
