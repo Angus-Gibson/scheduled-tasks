@@ -46,7 +46,7 @@ def test_sends_email_when_iss_close_and_dark(monkeypatch):
 
     # Fake API responses so main() never touches the network
     fake_iss_response = MagicMock()
-    fake_iss_response.raise_for_status = lambda: None
+    fake_iss_response.raise_for_status.return_value = None
     fake_iss_response.json.return_value = {
         "iss_position": {"latitude": "41.9", "longitude": "-87.6"}
     }
