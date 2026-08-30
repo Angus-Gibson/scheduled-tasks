@@ -106,7 +106,8 @@ def main():
     # If the ISS is close to my current position
     # and it is currently dark,
     # then send me an email to tell me to look up.
-    if iss_is_close() and is_dark():
+    # if iss_is_close() and is_dark():
+    if True:  # TEMP: forcing email test
         try:
             with smtplib.SMTP("smtp.gmail.com", port=587) as connection:
                 connection.starttls()
