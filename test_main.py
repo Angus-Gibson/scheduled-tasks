@@ -1,4 +1,5 @@
 from datetime import datetime, timezone
+from unittest.mock import patch, MagicMock
 
 import issoverhead
 
@@ -36,3 +37,38 @@ def test_is_dark_requires_data():
     issoverhead.sunset_dt = None
 
     assert issoverhead.is_dark() is False
+
+
+def test_sends_email_when_iss_close_and_dark(monkeypatch):
+    # Force proximity/darkness checks to True regardless of real data
+    monkeypatch.setattr(issoverhead, "iss_is_close", lambda: True)
+    monkeypatch.setattr(issoverhead, "is_dark", lambda: True)
+
+    # Fake API responses so main() never touches the network
+    fake_iss_response = MagicMock()
+    fake_iss_response.raise_for_status = lambda: None
+    fake_iss_response.json.return_value = {
+        "iss_position": {"latitude": "41.9", "longitude": "-87.6"}
+    }
+
+    fake_sun_response = MagicMock()
+    fake_sun_response.raise_for_status = lambda: None
+    fake_sun_response.json.return_value = {
+        "results": {
+            "sunrise": "2026-01-02T06:00:00+00:00",
+            "sunset": "2026-01-02T18:00:00+00:00",
+        }
+    }
+
+    fake_session = MagicMock()
+    fake_session.get.side_effect = [fake_iss_response, fake_sun_response]
+    monkeypatch.setattr(issoverhead, "get_session_with_retries", lambda: fake_session)
+
+    with patch("issoverhead.smtplib.SMTP") as mock_smtp:
+        mock_connection = MagicMock()
+        mock_smtp.return_value.__enter__.return_value = mock_connection
+
+        issoverhead.main()
+
+        mock_connection.login.assert_called_once()
+        mock_connection.sendmail.assert_called_once()
