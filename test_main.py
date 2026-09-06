@@ -39,10 +39,11 @@ def test_is_dark_requires_data():
     assert issoverhead.is_dark() is False
 
 
-def test_sends_email_when_iss_close_and_dark(monkeypatch):
+def test_sends_email_when_iss_close_and_dark(monkeypatch, tmp_path):
     # Force proximity/darkness checks to True regardless of real data
     monkeypatch.setattr(issoverhead, "iss_is_close", lambda: True)
     monkeypatch.setattr(issoverhead, "is_dark", lambda: True)
+    monkeypatch.setattr(issoverhead, "STATE_FILE", str(tmp_path / "iss-state"))
 
     # Fake API responses so main() never touches the network
     fake_iss_response = MagicMock()
@@ -117,3 +118,20 @@ def test_does_not_send_email_during_cooldown(monkeypatch, tmp_path):
         issoverhead.main()
 
         mock_smtp.assert_not_called()
+
+
+def test_save_sent_time_handles_oserror(monkeypatch, tmp_path, capsys):
+    invalid_path = tmp_path / "nonexistent_directory" / "state_file"
+    monkeypatch.setattr(issoverhead, "STATE_FILE", str(invalid_path))
+
+    issoverhead.save_sent_time()
+
+    captured = capsys.readouterr()
+    assert "Warning: Failed to save sent time:" in captured.out
+
+
+def test_get_last_sent_time_handles_oserror(monkeypatch, tmp_path):
+    invalid_path = tmp_path / "nonexistent_directory" / "state_file"
+    monkeypatch.setattr(issoverhead, "STATE_FILE", str(invalid_path))
+
+    assert issoverhead.get_last_sent_time() == 0

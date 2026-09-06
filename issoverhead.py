@@ -14,13 +14,16 @@ def get_last_sent_time():
     try:
         with open(STATE_FILE) as f:
             return float(f.read().strip())
-    except (FileNotFoundError, ValueError):
+    except (OSError, ValueError):
         return 0
 
 
 def save_sent_time():
-    with open(STATE_FILE, "w") as f:
-        f.write(str(time.time()))
+    try:
+        with open(STATE_FILE, "w") as f:
+            f.write(str(time.time()))
+    except OSError as e:
+        print(f"Warning: Failed to save sent time: {e}")
 
 
 def cooldown_has_passed():
@@ -126,7 +129,7 @@ def main():
     # If the ISS is close to my current position
     # and it is currently dark,
     # then send me an email to tell me to look up.
-    if iss_is_close() and is_dark() and cooldown_has_passed():
+    if cooldown_has_passed() and iss_is_close() and is_dark():
         try:
             with smtplib.SMTP("smtp.gmail.com", port=587) as connection:
                 connection.starttls()
