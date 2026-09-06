@@ -83,3 +83,37 @@ def test_sends_email_when_iss_close_and_dark(monkeypatch):
             to_addrs="recipient@example.com",
             msg="Subject:ISS IS OVERHEAD\n\nISS is overhead! See if you can spot it!",
         )
+
+
+def test_does_not_send_email_during_cooldown(monkeypatch, tmp_path):
+    monkeypatch.setattr(issoverhead, "iss_is_close", lambda: True)
+    monkeypatch.setattr(issoverhead, "is_dark", lambda: True)
+
+    fake_iss_response = MagicMock()
+    fake_iss_response.raise_for_status.return_value = None
+    fake_iss_response.json.return_value = {
+        "iss_position": {"latitude": "41.9", "longitude": "-87.6"}
+    }
+
+    fake_sun_response = MagicMock()
+    fake_sun_response.raise_for_status.return_value = None
+    fake_sun_response.json.return_value = {
+        "results": {
+            "sunrise": "2026-01-02T06:00:00+00:00",
+            "sunset": "2026-01-02T18:00:00+00:00",
+        }
+    }
+
+    fake_session = MagicMock()
+    fake_session.get.side_effect = [fake_iss_response, fake_sun_response]
+    monkeypatch.setattr(issoverhead, "get_session_with_retries", lambda: fake_session)
+
+    state_file = tmp_path / "iss-state"
+    state_file.write_text("1000")
+    monkeypatch.setattr(issoverhead, "STATE_FILE", str(state_file))
+    monkeypatch.setattr(issoverhead.time, "time", lambda: 1001)
+
+    with patch("issoverhead.smtplib.SMTP") as mock_smtp:
+        issoverhead.main()
+
+        mock_smtp.assert_not_called()
