@@ -1,10 +1,30 @@
 import os
 import smtplib
 from datetime import datetime
-
 import requests
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
+import time
+
+STATE_FILE = "/home/angusgibson/scheduled_tasks/.last_email_sent"
+COOLDOWN_SECONDS = 60 * 30  # 30 minutes; adjust to taste
+
+
+def get_last_sent_time():
+    try:
+        with open(STATE_FILE) as f:
+            return float(f.read().strip())
+    except (FileNotFoundError, ValueError):
+        return 0
+
+
+def save_sent_time():
+    with open(STATE_FILE, "w") as f:
+        f.write(str(time.time()))
+
+
+def cooldown_has_passed():
+    return (time.time() - get_last_sent_time()) >= COOLDOWN_SECONDS
 
 MY_LAT = 41.878113  # Your latitude
 MY_LONG = -87.629799  # Your longitude
@@ -13,11 +33,11 @@ MY_EMAIL = os.environ.get("MY_EMAIL")
 PASSWORD = os.environ.get("MY_PASSWORD")
 PERSONAL = os.environ.get("REGULAR_EMAIL")
 
+
 iss_latitude = 0.0
 iss_longitude = 0.0
 sunrise_dt = None
 sunset_dt = None
-
 
 def get_session_with_retries():
     """Create a requests session with automatic retry logic."""
@@ -106,7 +126,7 @@ def main():
     # If the ISS is close to my current position
     # and it is currently dark,
     # then send me an email to tell me to look up.
-    if iss_is_close() and is_dark():
+    if iss_is_close() and is_dark() and cooldown_has_passed():
         try:
             with smtplib.SMTP("smtp.gmail.com", port=587) as connection:
                 connection.starttls()
@@ -117,11 +137,12 @@ def main():
                     msg="Subject:ISS IS OVERHEAD\n\nISS is overhead! See if you can spot it!",
                 )
             print("Email sent successfully!")
+            save_sent_time()
         except smtplib.SMTPException as e:
             print(f"Error: Failed to send email: {e}")
             raise SystemExit(1)
     else:
-        print("ISS is not close or it's not dark yet.")
+        print("ISS is not close, it's not dark, or still in cooldown.")
 
 
 if __name__ == "__main__":
