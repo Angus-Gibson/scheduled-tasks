@@ -6,7 +6,7 @@ from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 import time
 
-STATE_FILE = "/home/angusgibson/scheduled_tasks/.last_email_sent"
+STATE_FILE = os.environ.get("ISS_STATE_FILE", os.path.join(os.path.expanduser("~"), ".issoverhead_last_email_sent"))
 COOLDOWN_SECONDS = 60 * 30  # 30 minutes; adjust to taste
 
 
